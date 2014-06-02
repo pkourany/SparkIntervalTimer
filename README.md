@@ -62,7 +62,7 @@ Functions called by IntervalTimer shouldbe short, run as quickly as
 possible, and should avoid calling other functions if possible.
 
 
-myTimer.end();
+```myTimer.end();```
 
 Stop the timer function. The hardware resource becomes available for use 
 by other IntervalTimer objects. 
