@@ -62,13 +62,13 @@ Functions called by IntervalTimer shouldbe short, run as quickly as
 possible, and should avoid calling other functions if possible.
 
 
-```myTimer.end();```
+myTimer.end();
 
 Stop the timer function. The hardware resource becomes available for use 
 by other IntervalTimer objects. 
 
 
-myTImer.interrupt_SIT(action);
+```myTImer.interrupt_SIT(action);```
 
 Enables or disables an active IntervalTimer's interrupts without 
 deleting the object. 
