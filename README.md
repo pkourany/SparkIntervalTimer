@@ -41,7 +41,7 @@ timers TMR2, TMR3 and TMR4 will be allocated as required.
 2. IntervalTimer Usage 
 ----------------------
 
-IntervalTimer myTimer;
+```IntervalTimer myTimer;```
 Create an IntervalTimer object. You may create as many IntervalTimers as 
 needed, but only a limited number (3) may be active simultaneously. 
 Normally IntervalTimer objects should be created as global variables. 
