@@ -56,9 +56,10 @@ microseconds or milliseconds based on the selected timebase: uSec for
 microseconds and hmSec for half-milliseconds. The time may be an 
 unsigned integer, integer or long. The function returns true if 
 successful. False is returned if all hardware resources are busy, used 
-by other IntervalTimer objects. Functions called by IntervalTimer should
-be short, run as quickly as possible, and should avoid calling other
-functions if possible.
+by other IntervalTimer objects.
+
+Functions called by IntervalTimer shouldbe short, run as quickly as
+possible, and should avoid calling other functions if possible.
 
 
 myTimer.end();
@@ -67,7 +68,7 @@ Stop the timer function. The hardware resource becomes available for use
 by other IntervalTimer objects. 
 
 
-```myTImer.interrupt_SIT(action);```
+myTImer.interrupt_SIT(action);
 
 Enables or disables an active IntervalTimer's interrupts without 
 deleting the object. 
