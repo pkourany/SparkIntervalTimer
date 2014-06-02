@@ -32,12 +32,14 @@ advanced applications which require highly precise timing. Usually
 elapsedMillis variables are easier to use, because they avoid the 
 pitfalls of interrupt programming. 
 
-Compatibility 
+1. Compatibility 
+----------------
 
 Up to 3 IntervalTimer objects may be active simultaneously. The Core 
 timers TMR2, TMR3 and TMR4 will be allocated as required. 
 
-IntervalTimer Usage 
+2. IntervalTimer Usage 
+----------------------
 
 IntervalTimer myTimer;
 Create an IntervalTimer object. You may create as many IntervalTimers as 
@@ -45,7 +47,7 @@ needed, but only a limited number (3) may be active simultaneously.
 Normally IntervalTimer objects should be created as global variables. 
 
 
-myTimer.begin(function, time, timebase);
+```myTimer.begin(function, time, timebase);```
 Begin calling the specified function. The interval is specified in 
 microseconds or milliseconds based on the selected timebase: uSec for 
 microseconds and hmSec for half-milliseconds. The time may be an 
@@ -56,16 +58,17 @@ by other IntervalTimer objects.
 Functions called by IntervalTimer should be short, run as quickly as 
 possible, and should avoid calling other functions if possible.
 
-myTimer.end();
+```myTimer.end();```
 Stop the timer function. The hardware resource becomes available for use 
 by other IntervalTimer objects. 
 
-myTImer.interrupt_SIT(action);
+```myTImer.interrupt_SIT(action);```
 Enables or disables an active IntervalTimer's interrupts without 
 deleting the object. 
 
 
-Example Program 
+3. Example Program 
+------------------
 
 The included demo program will create three Interval Timers (maximum 
 allowed) to blink three LEDs at different intervals. The first timer 
@@ -76,7 +79,8 @@ console. After 100 blinks, Timer 1 is shut down and will stop blinking
 (and the blink counter will no longer change). 
 
 
-Interrupt Context Issues 
+4. Interrupt Context Issues 
+---------------------------
 
 IntervalTimer will call your function from interrupt context. Because it 
 can interrupt your program at any moment, special design is necessary to 
