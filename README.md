@@ -36,7 +36,8 @@ pitfalls of interrupt programming.
 ----------------
 
 Up to 3 IntervalTimer objects may be active simultaneously. The Core 
-timers TMR2, TMR3 and TMR4 will be allocated as required. 
+timers TMR2, TMR3 and TMR4 will be allocated as required.
+
 
 2. IntervalTimer Usage 
 ----------------------
@@ -60,10 +61,12 @@ by other IntervalTimer objects.
 Functions called by IntervalTimer should be short, run as quickly as 
 possible, and should avoid calling other functions if possible.
 
+
 ```myTimer.end();```
 
 Stop the timer function. The hardware resource becomes available for use 
 by other IntervalTimer objects. 
+
 
 ```myTImer.interrupt_SIT(action);```
 
