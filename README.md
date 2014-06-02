@@ -42,14 +42,18 @@ timers TMR2, TMR3 and TMR4 will be allocated as required.
 2. IntervalTimer Usage 
 ----------------------
 
-```IntervalTimer myTimer;```
+```
+IntervalTimer myTimer;
+```
 
 Create an IntervalTimer object. You may create as many IntervalTimers as 
 needed, but only a limited number (3) may be active simultaneously. 
 Normally IntervalTimer objects should be created as global variables. 
 
 
-```myTimer.begin(function, time, timebase);```
+```
+myTimer.begin(function, time, timebase);
+```
 
 Begin calling the specified function. The interval is specified in 
 microseconds or milliseconds based on the selected timebase: uSec for 
@@ -62,13 +66,17 @@ Functions called by IntervalTimer shouldbe short, run as quickly as
 possible, and should avoid calling other functions if possible.
 
 
+```
 myTimer.end();
+```
 
 Stop the timer function. The hardware resource becomes available for use 
 by other IntervalTimer objects. 
 
 
-```myTImer.interrupt_SIT(action);```
+```
+myTImer.interrupt_SIT(action);
+```
 
 Enables or disables an active IntervalTimer's interrupts without 
 deleting the object. 
