@@ -32,12 +32,28 @@ advanced applications which require highly precise timing. Usually
 elapsedMillis variables are easier to use, because they avoid the 
 pitfalls of interrupt programming. 
 
-1. Compatibility 
-----------------
+1. Using Hardware Timers 
+------------------------
 
 Up to 3 IntervalTimer objects may be active simultaneously. The Core 
-timers TMR2, TMR3 and TMR4 will be allocated as required.
+hardware timers TMR2, TMR3 and TMR4 will be allocated as required (in that order).
 
+Hardware timers are used for providing PWM output via the analogWrite() function.
+Allocating a hardware timer will disable PWM capabilities to certain pins based
+on the timer allocated as follows:
+
+```
+PIN		TMR2	TMR3	TMR4
+D0						 x
+D1						 x
+A0		 x
+A1		 x
+A4				 x
+A5				 x
+A6				 x
+A7 				 x
+```
+Note that digital I/O (read/write) will still functions on the affected pins.
 
 2. IntervalTimer Usage 
 ----------------------
@@ -53,30 +69,29 @@ Normally IntervalTimer objects should be created as global variables.
 ```
 myTimer.begin(function, time, timebase);
 ```
-Begin calling the specified function. The interval is specified in 
-microseconds or milliseconds based on the selected timebase: uSec for 
+Allocate a timer from the pool and start it. The interval is specified in 
+microseconds or (half) milliseconds based on the selected timebase: uSec for 
 microseconds and hmSec for half-milliseconds. The time may be an 
 unsigned integer, integer or long. The function returns true if 
-successful. False is returned if all hardware resources are busy, used 
-by other IntervalTimer objects.
+successful. False is returned if all hardware timer resources are allocated and 
+used by other IntervalTimer objects.
 
-Functions called by IntervalTimer shouldbe short, run as quickly as
-possible, and should avoid calling other functions if possible.
+The functions specified to be called by IntervalTimer should be short, run as
+quickly as possible, and should avoid calling other functions if possible.
 
 
 ```
 myTimer.end();
 ```
-Stop the timer function. The hardware resource becomes available for use 
-by other IntervalTimer objects. 
+Stop the timer (and interrupts) and deallocate it from the timer pool. The hardware
+resource becomes available for use by other IntervalTimer objects. 
 
 
 ```
-myTImer.interrupt_SIT(action);
+myTimer.interrupt_SIT(action);
 ```
 Enables or disables an active IntervalTimer's interrupts without 
-deleting the object. 
-
+deleting the object.
 
 3. Example Program 
 ------------------
@@ -112,4 +127,3 @@ between a sequence of instructions, it can be read incorrectly. If your
 data is multiple variables, such as an array and a count, usually 
 interrupts need to be disabled for the entire sequence of your code 
 which accesses the data. 
-
