@@ -44,7 +44,7 @@ on the timer allocated as follows:
 
 ```
 PIN		TMR2	TMR3	TMR4
-----------------------
+----------------------------
 D0						 x
 D1						 x
 A0		 x
