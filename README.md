@@ -68,17 +68,44 @@ Normally IntervalTimer objects should be created as global variables.
 
 
 ```
-myTimer.begin(function, time, timebase);
+myTimer.begin(function, time, timebase);  		//AUTO allocate timer
 ```
-Allocate a timer from the pool and start it. The interval is specified in 
+Auto-allocate a timer from the pool and start it. The interval is specified in 
 microseconds or (half) milliseconds based on the selected timebase: uSec for 
-microseconds and hmSec for half-milliseconds. The time may be an 
-unsigned integer, integer or long. The function returns true if 
-successful. False is returned if all hardware timer resources are allocated and 
-used by other IntervalTimer objects.
+microseconds and hmSec for half-milliseconds. The time specified as a uint16_t.
+The function returns true if successful. False is returned if all hardware
+timer resources are allocated and used by other IntervalTimer objects.
 
 The functions specified to be called by IntervalTimer should be short, run as
 quickly as possible, and should avoid calling other functions if possible.
+
+
+```
+myTimer.begin(function, time, timebase, id);
+```
+Manually allocate a timer from the pool by specifying its id and start it.
+The specified id corresponds to a hardware timer: TIMER2, TIMER3 or TIMER4.
+The remaining parameters are the same as above.
+
+
+```
+myTimer.resetPeriod_SIT(time, timebase);
+```
+Reset the timer's time and timebase.  Timer will be stopped and restarted with
+new settings.  See above for parameter details.
+
+
+```
+myTimer.interrupt_SIT(action);
+```
+Enables (action = INT_ENABLE) or disables (action = INT_DISABLE) an active
+IntervalTimer's interrupts without deleting the object
+
+
+```
+myTimer.isAllocated_SIT();
+```
+Returns -1 if timer is not allocated or allocated timer id (TIMER2, TIMER3, TIMER4).
 
 
 ```
@@ -88,22 +115,15 @@ Stop the timer (and interrupts) and deallocate it from the timer pool. The hardw
 resource becomes available for use by other IntervalTimer objects. 
 
 
-```
-myTimer.interrupt_SIT(action);
-```
-Enables or disables an active IntervalTimer's interrupts without 
-deleting the object.
-
 3. Example Program 
 ------------------
 
 The included demo program will create three Interval Timers (maximum 
 allowed) to blink three LEDs at different intervals. The first timer 
 will blink the onboard LED while 2 extra LEDs (and small current 
-limiting resistors) must be added by the user on pins D3 and D4. A 
-counter showing the number of Timer 1 blinks is output to the serial 
-console. After 100 blinks, Timer 1 is shut down and will stop blinking 
-(and the blink counter will no longer change). 
+limiting resistors) must be added by the user on pins D3 and D4.
+After 100 blinks, Timer1 will reset to 1/4 of its interval (250ms) and
+after 200 more blinks, Timer1 is shut down and will stop blinking.
 
 
 4. Interrupt Context Issues 

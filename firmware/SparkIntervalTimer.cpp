@@ -63,7 +63,6 @@ extern "C" void Wiring_TIM4_Interrupt_Handler_override()
 }
 
 
-
 // ------------------------------------------------------------
 // this function inits and starts the timer, using the specified
 // function as a callback and the period provided. must be passed
@@ -75,9 +74,9 @@ extern "C" void Wiring_TIM4_Interrupt_Handler_override()
 // and = 1-65535 microsecond (uSec)
 // or 1-65535 0.5ms increments (hmSec)
 // ------------------------------------------------------------
-bool IntervalTimer::beginCycles(void (*isrCallback)(), uint16_t newValue, bool scale) {
+bool IntervalTimer::beginCycles(void (*isrCallback)(), uint16_t Period, bool scale, TIMid id) {
 
-	// if this interval timer is already running, stop it
+	// if this interval timer is already running, stop and deallocate it
 	if (status == TIMER_SIT) {
 		stop_SIT();
 		status = TIMER_OFF;
@@ -85,9 +84,16 @@ bool IntervalTimer::beginCycles(void (*isrCallback)(), uint16_t newValue, bool s
 	// store callback pointer
 	myISRcallback = isrCallback;
 
-	// attempt to allocate this timer
-	if (allocate_SIT(newValue, scale)) status = TIMER_SIT;
-	else status = TIMER_OFF;
+	if (id > NUM_SIT) {		// Allocate specified timer (id=0 to 3) or auto-allocate from pool (id=255)
+		// attempt to allocate this timer
+		if (allocate_SIT(Period, scale, AUTO)) status = TIMER_SIT;		//255 means allocate from pool
+		else status = TIMER_OFF;
+	}
+	else {
+		// attempt to allocate this timer
+		if (allocate_SIT(Period, scale, id)) status = TIMER_SIT;		//0-3 so directly allocate
+		else status = TIMER_OFF;
+	}
 
 	// check for success and return
 	if (status != TIMER_OFF) return true;
@@ -97,34 +103,34 @@ bool IntervalTimer::beginCycles(void (*isrCallback)(), uint16_t newValue, bool s
 
 
 // ------------------------------------------------------------
-// stop the timer if it's currently running, using its status
-// to determine what hardware resources the timer may be using
-// ------------------------------------------------------------
-void IntervalTimer::end() {
-	if (status == TIMER_SIT) stop_SIT();
-	status = TIMER_OFF;
-}
-
-
-
-// ------------------------------------------------------------
 // enables the SIT clock if not already enabled, then checks to
 // see if any SITs are available for use. if one is available,
 // it's initialized and started with the specified value, and
 // the function returns true, otherwise it returns false
 // ------------------------------------------------------------
-bool IntervalTimer::allocate_SIT(uint16_t newValue, bool scale) {
+bool IntervalTimer::allocate_SIT(uint16_t Period, bool scale, TIMid id) {
 
-	// check for an available SIT, and if so, start it
-	for (uint8_t id = 0; id < NUM_SIT; id++) {
+	if (id < NUM_SIT) {		// Allocate specified timer (id=TIMER2/3/4) or auto-allocate from pool (id=AUTO)
 		if (!SIT_used[id]) {
 			SIT_id = id;
-			start_SIT(newValue, scale);
+			start_SIT(Period, scale);
 			SIT_used[id] = true;
 			return true;
 		}
 	}
-	// no SIT available
+	else {	
+		// Auto allocate - check for an available SIT, and if so, start it
+		for (uint8_t tid = 0; tid < NUM_SIT; tid++) {
+			if (!SIT_used[tid]) {
+				SIT_id = tid;
+				start_SIT(Period, scale);
+				SIT_used[tid] = true;
+				return true;
+			}
+		}
+	}
+	
+	// Specified or no auto-allocate SIT available
 	return false;
 }
 
@@ -134,7 +140,7 @@ bool IntervalTimer::allocate_SIT(uint16_t newValue, bool scale) {
 // configuters a SIT's TIMER registers, etc and enables
 // interrupts, effectively starting the timer upon completion
 // ------------------------------------------------------------
-void IntervalTimer::start_SIT(uint16_t newValue, bool scale) {
+void IntervalTimer::start_SIT(uint16_t Period, bool scale) {
 
 	TIM_TimeBaseInitTypeDef timerInitStructure;
     NVIC_InitTypeDef nvicStructure;
@@ -176,7 +182,7 @@ void IntervalTimer::start_SIT(uint16_t newValue, bool scale) {
 
 	timerInitStructure.TIM_Prescaler = prescaler;
 	timerInitStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	timerInitStructure.TIM_Period = newValue;
+	timerInitStructure.TIM_Period = Period;
 	timerInitStructure.TIM_ClockDivision = TIM_CKD_DIV1;
 	timerInitStructure.TIM_RepetitionCounter = 0;
 
@@ -192,6 +198,16 @@ void IntervalTimer::start_SIT(uint16_t newValue, bool scale) {
     nvicStructure.NVIC_IRQChannelSubPriority = 1;
     nvicStructure.NVIC_IRQChannelCmd = ENABLE;
     NVIC_Init(&nvicStructure);
+}
+
+
+// ------------------------------------------------------------
+// stop the timer if it's currently running, using its status
+// to determine what hardware resources the timer may be using
+// ------------------------------------------------------------
+void IntervalTimer::end() {
+	if (status == TIMER_SIT) stop_SIT();
+	status = TIMER_OFF;
 }
 
 
@@ -233,6 +249,7 @@ void IntervalTimer::stop_SIT() {
 	// free SIT for future use
 	SIT_used[SIT_id] = false;
 }
+
 
 // ------------------------------------------------------------
 // Enables or disables an active SIT's interrupt without
@@ -276,4 +293,59 @@ void IntervalTimer::interrupt_SIT(action ACT)
 		//Do nothing
 		break;
 	}
+}
+
+
+// ------------------------------------------------------------
+// Set new period for the SIT without
+// removing the SIT.
+// ------------------------------------------------------------
+void IntervalTimer::resetPeriod_SIT(uint16_t newPeriod, bool scale)
+{
+	TIM_TimeBaseInitTypeDef timerInitStructure;
+	TIM_TypeDef* TIMx;
+	uint16_t prescaler;
+
+	//use SIT_id to identify TIM#
+	switch (SIT_id) {
+	case 0:		// TIM2
+		TIMx = TIM2;
+		break;
+	case 1:		// TIM3
+		TIMx = TIM3;
+		break;
+	case 2:		// TIM4
+		TIMx = TIM4;
+		break;
+	}
+
+	switch (scale) {
+	case uSec:
+		prescaler = SIT_PRESCALERu;	// Set prescaler for 1MHz clock, 1us period
+		break;
+	case hmSec:
+		prescaler = SIT_PRESCALERm;	// Set prescaler for 2Hz clock, .5ms period
+		break;
+	default:
+		scale = uSec;				// Default to microseconds
+		prescaler = SIT_PRESCALERu;
+		break;
+	}
+
+	TIMx->ARR = newPeriod;
+	TIMx->PSC = prescaler;
+	TIMx->EGR = TIM_PSCReloadMode_Immediate;
+	TIM_ClearITPendingBit(TIMx, TIM_IT_Update);
+}
+
+// ------------------------------------------------------------
+// Returns -1 if timer not allocated or sid number:
+// 0 = TMR2, 1 = TMR3, 2 = TMR4
+// ------------------------------------------------------------
+int8_t IntervalTimer::isAllocated_SIT(void)
+{
+	if (status == TIMER_SIT)
+		return SIT_id;
+	else 
+		return -1;
 }

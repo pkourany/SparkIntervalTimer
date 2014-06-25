@@ -3,9 +3,9 @@
 // This demo will create three Interval Timers (maximum allowed) to blink three
 // LEDs at different intervals.  The first timer will blink the onboard LED
 // while 2 extra LEDs (and small current limiting resistors) must be added
-// by the user on pins D3 and D4.  A counter showing the number of Timer 1 blinks
-// is output to the serial console.  After 100 blinks, Timer 1 is shut down and
-// will stop blinking (and the blink counter will no longer change).
+// by the user on pins D3 and D4.  After 100 blinks, Timer1 will reset to 1/4
+// of its interval and after 200 more blinks, Timer1 is shut down and
+// will stop blinking.
 
 
 #include "SparkIntervalTimer.h"
@@ -28,12 +28,15 @@ const uint8_t ledPin3 = D4;		// LED for third Interval Timer
 
 void setup(void) {
   pinMode(ledPin, OUTPUT);
-  Serial.begin(9600);
+ 
+  // AUTO allocate blinkLED to run every 500ms (1000 * .5ms period)
+  myTimer.begin(blinkLED, 1000, hmSec);
   
-  myTimer.begin(blinkLED, 1000, hmSec);  // blinkLED to run every 500ms (1000 * .5ms period)
-  myTimer2.begin(blinkLED2, 500, hmSec);  // blinkLED to run every 250ms (500 * .5ms period)
-  myTimer3.begin(blinkLED3, 2000, hmSec);  // blinkLED to run every 1000ms (2000 * .5ms period)
-
+  // Manually allocate blinkLED2 to hardware timer TIM4 to run every 250ms (500 * .5ms period)  
+  myTimer2.begin(blinkLED2, 500, hmSec, TIMER4);
+  
+  // Manually allocate blinkLED3 to hardware timer TIM3 blinkLED to run every 1000ms (2000 * .5ms period)
+  myTimer3.begin(blinkLED3, 2000, hmSec, TIMER3);
 }
 
 // The first TIMER interrupt will blink the LED, and keep
@@ -51,7 +54,7 @@ volatile unsigned long blinkCount = 0; // use volatile for shared variables
 void blinkLED(void) {
   if (ledState == LOW) {
     ledState = HIGH;
-    blinkCount = blinkCount + 1;  // increase when LED turns on
+    blinkCount++;		// increase when LED turns on
 	PIN_MAP[ledPin].gpio_peripheral->BSRR = PIN_MAP[ledPin].gpio_pin; // LED High
   }
   else {
@@ -87,30 +90,23 @@ void blinkLED3(void) {
 // The main program will print the blink count
 // to the Arduino Serial Monitor
 void loop(void) {
-  unsigned long blinkCopy;  // holds a copy of the blinkCount
+//  unsigned long blinkCopy;  // holds a copy of the blinkCount
 
   // to read a variable which the interrupt code writes, we
   // must temporarily disable interrupts, to be sure it will
   // not change while we are reading.  To minimize the time
   // with interrupts off, just quickly make a copy, and then
   // use the copy while allowing the interrupt to keep working.
-  noInterrupts();
-  blinkCopy = blinkCount;
-  interrupts();
+//  noInterrupts();
+//  blinkCopy = blinkCount;
+//  interrupts();
 
-//  if (blinkCopy >= 100)				// After 100 blinks, shut down timer 1
-//	myTimer.end();
-
-/*
-  Serial.print("LED=");
-  Serial.print(ledState);
-  Serial.print(" LED2=");
-  Serial.print(ledState2);
-  Serial.print(" LED3=");
-  Serial.print(ledState3);
-
-  Serial.print("blinkCount = ");
-  Serial.println(blinkCopy);
-*/
-  delay(200);
+  if (blinkCount == 100)	{			// After 100 blinks, shut down timer 1
+    blinkCount++;						// increment count so IF does not keep passing
+	myTimer.resetPeriod_SIT(250, hmSec);
+	}
+  else if (blinkCount >= 300) {			// After 100 blinks, shut down timer 1
+	blinkCount = 0;						// reset count so IF does not keep passing
+	myTimer.end();
+	}
 }

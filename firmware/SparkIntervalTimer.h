@@ -41,7 +41,7 @@ extern void Wiring_TIM3_Interrupt_Handler_override(void);
 extern void Wiring_TIM4_Interrupt_Handler_override(void);
 
 enum action {INT_DISABLE, INT_ENABLE};
-
+enum TIMid {TIMER2, TIMER3, TIMER4, AUTO=255};
 
 class IntervalTimer {
   private:
@@ -55,14 +55,14 @@ class IntervalTimer {
     const uint16_t MAX_PERIOD = UINT16_MAX;		// 1-65535 us
 	
     static bool SIT_used[NUM_SIT];
-    bool allocate_SIT(uint16_t newValue, bool scale);
-    void start_SIT(uint16_t newValue, bool scale);
+    bool allocate_SIT(uint16_t Period, bool scale, TIMid id);
+    void start_SIT(uint16_t Period, bool scale);
     void stop_SIT();
     bool status;
     uint8_t SIT_id;
  	ISRcallback myISRcallback;
 	
-    bool beginCycles(void (*isrCallback)(), uint16_t cycles, bool scale);
+    bool beginCycles(void (*isrCallback)(), uint16_t Period, bool scale, TIMid id);
 	
   public:
     IntervalTimer() { 
@@ -73,38 +73,22 @@ class IntervalTimer {
     }
     ~IntervalTimer() { end(); }
 	
-    bool begin(void (*isrCallback)(), unsigned int newPeriod, bool scale) {
-		if (newPeriod == 0 || newPeriod > MAX_PERIOD)
+    bool begin(void (*isrCallback)(), uint16_t Period, bool scale) {
+		if (Period == 0 || Period > MAX_PERIOD)
 			return false;
-		return beginCycles(isrCallback, newPeriod, scale);
+		return beginCycles(isrCallback, Period, scale, AUTO);
     }
 	
-    bool begin(void (*isrCallback)(), int newPeriod, bool scale) {
-		if (newPeriod < 0)
+    bool begin(void (*isrCallback)(), uint16_t Period, bool scale, TIMid id) {
+		if (Period == 0 || Period > MAX_PERIOD)
 			return false;
-		return begin(isrCallback, (unsigned int)newPeriod, scale);
-    }
-	
-    bool begin(void (*isrCallback)(), unsigned long newPeriod, bool scale) {
-		return begin(isrCallback, (unsigned int)newPeriod, scale);
-    }
-	
-    bool begin(void (*isrCallback)(), long newPeriod, bool scale) {
-		return begin(isrCallback, (int)newPeriod, scale);
-    }
-
-    bool begin(unsigned int newPeriod, bool scale) {        //Set different time for timer that's already allocated
-		if (newPeriod == 0 || newPeriod > MAX_PERIOD)
-			return false;
-			
-	    if (status == TIMER_SIT) {
-		    stop_SIT();
-		    start_SIT(newPeriod, scale);
-	    }
+		return beginCycles(isrCallback, Period, scale, id);
     }
 	
     void end();
 	void interrupt_SIT(action ACT);
+	void resetPeriod_SIT(uint16_t newPeriod, bool scale);
+	int8_t isAllocated_SIT(void);
 	
     static ISRcallback SIT_CALLBACK[NUM_SIT];
 };
