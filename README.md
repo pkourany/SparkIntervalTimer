@@ -81,7 +81,7 @@ quickly as possible, and should avoid calling other functions if possible.
 
 
 ```
-myTimer.begin(function, time, timebase, id);
+myTimer.begin(function, time, timebase, id);  //MANUALLY allocate timer
 ```
 Manually allocate a timer from the pool by specifying its id and start it.
 The specified id corresponds to a hardware timer: TIMER2, TIMER3 or TIMER4.
