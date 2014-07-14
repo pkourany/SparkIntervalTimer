@@ -8,7 +8,7 @@
 // will stop blinking.
 
 
-#include "SparkIntervalTimer.h"
+#include "SparkIntervalTimer/SparkIntervalTimer.h"
 
 // Create 3 IntervalTimer objects
 IntervalTimer myTimer;
