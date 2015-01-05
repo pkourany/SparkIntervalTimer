@@ -194,8 +194,8 @@ void IntervalTimer::start_SIT(uint16_t Period, bool scale) {
 	SIT_CALLBACK[SIT_id] = myISRcallback;
 
 	//Enable Timer Interrupt
-    nvicStructure.NVIC_IRQChannelPreemptionPriority = 0;
-    nvicStructure.NVIC_IRQChannelSubPriority = 1;
+    nvicStructure.NVIC_IRQChannelPreemptionPriority = 10;
+    nvicStructure.NVIC_IRQChannelSubPriority = 0;
     nvicStructure.NVIC_IRQChannelCmd = ENABLE;
     NVIC_Init(&nvicStructure);
 }
@@ -279,8 +279,8 @@ void IntervalTimer::interrupt_SIT(action ACT)
 	switch (ACT) {
 	case INT_ENABLE:
 		//Enable Timer Interrupt
-		nvicStructure.NVIC_IRQChannelPreemptionPriority = 0;
-		nvicStructure.NVIC_IRQChannelSubPriority = 1;
+		nvicStructure.NVIC_IRQChannelPreemptionPriority = 10;
+		nvicStructure.NVIC_IRQChannelSubPriority = 0;
 		nvicStructure.NVIC_IRQChannelCmd = ENABLE;
 		NVIC_Init(&nvicStructure);
 		break;
