@@ -175,7 +175,7 @@ void IntervalTimer::start_SIT(uint16_t Period, bool scale) {
 			prescaler = SIT_PRESCALERm;	// Set prescaler for 2Hz clock, .5ms period
 			break;
 		default:
-			scale == uSec;				// Default to microseconds
+			scale = uSec;				// Default to microseconds
 			prescaler = SIT_PRESCALERu;
 			break;
 	}
