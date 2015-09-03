@@ -8,7 +8,7 @@
 // blinks, Timer1 is shut down and will stop blinking.
 
 
-#include "SparkIntervalTimer.h"
+#include "SparkIntervalTimer/SparkIntervalTimer.h"
 
 SYSTEM_MODE(MANUAL);		//For this demo, WiFi and Cloud connections are disabled
 
