@@ -1,4 +1,5 @@
 /* Copyright (c) 2014 Paul Kourany, based on work by Dianel Gilbert
+
  UPDATED Sept 3, 2015 - Added support for Particle Photon
 
 Copyright (c) 2013 Daniel Gilbert, loglow@gmail.com
