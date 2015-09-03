@@ -1,5 +1,7 @@
 /* Copyright (c) 2014 Paul Kourany, based on work by Dianel Gilbert
 
+UPDATED Sept 3, 2015 - Added support for Particle Photon
+
 Copyright (c) 2013 Daniel Gilbert, loglow@gmail.com
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -21,6 +23,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
 
 #include "SparkIntervalTimer.h"
 
+
 // ------------------------------------------------------------
 // static class variables need to be reiterated here before use
 // ------------------------------------------------------------
@@ -29,39 +32,83 @@ IntervalTimer::ISRcallback IntervalTimer::SIT_CALLBACK[];
 
 // ------------------------------------------------------------
 // Define interval timer ISR hooks for three available timers
-// TIM2, TIM3 and TIM4 with callbacks to user code.
-// These default as infinite loop stubs by Spark
+// TIM2...TIM7 with callbacks to user code.
 // ------------------------------------------------------------
-extern "C" void Wiring_TIM2_Interrupt_Handler_override()
+#if defined(STM32F10X_MD) || !defined(PLATFORM_ID)		//Core
+void Wiring_TIM2_Interrupt_Handler_override()
 {
 	if (TIM_GetITStatus(TIM2, TIM_IT_Update) != RESET)
 	{
 		TIM_ClearITPendingBit(TIM2, TIM_IT_Update);
-		//ISR for TIM2 code here
 		IntervalTimer::SIT_CALLBACK[0]();
 	}
 }
 
-extern "C" void Wiring_TIM3_Interrupt_Handler_override()
+void Wiring_TIM3_Interrupt_Handler_override()
 {
 	if (TIM_GetITStatus(TIM3, TIM_IT_Update) != RESET)
 	{
 		TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
-		//ISR code for TIM3 here
 		IntervalTimer::SIT_CALLBACK[1]();
 	}
 }
 
-extern "C" void Wiring_TIM4_Interrupt_Handler_override()
+void Wiring_TIM4_Interrupt_Handler_override()
 {
 	if (TIM_GetITStatus(TIM4, TIM_IT_Update) != RESET)
 	{
 		TIM_ClearITPendingBit(TIM4, TIM_IT_Update);
-		//ISR code for TIM3 here
+		IntervalTimer::SIT_CALLBACK[2]();
+	}
+}
+#elif defined(STM32F2XX) && defined(PLATFORM_ID)	//Photon
+void Wiring_TIM3_Interrupt_Handler_override()
+{
+	if (TIM_GetITStatus(TIM3, TIM_IT_Update) != RESET)
+	{
+		TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
+		IntervalTimer::SIT_CALLBACK[0]();
+	}
+}
+
+void Wiring_TIM4_Interrupt_Handler_override()
+{
+	if (TIM_GetITStatus(TIM4, TIM_IT_Update) != RESET)
+	{
+		TIM_ClearITPendingBit(TIM4, TIM_IT_Update);
+		IntervalTimer::SIT_CALLBACK[1]();
+	}
+}
+
+void Wiring_TIM5_Interrupt_Handler_override()
+{
+	if (TIM_GetITStatus(TIM5, TIM_IT_Update) != RESET)
+	{
+		TIM_ClearITPendingBit(TIM5, TIM_IT_Update);
 		IntervalTimer::SIT_CALLBACK[2]();
 	}
 }
 
+void Wiring_TIM6_Interrupt_Handler_override()
+{
+	if (TIM_GetITStatus(TIM6, TIM_IT_Update) != RESET)
+	{
+		TIM_ClearITPendingBit(TIM6, TIM_IT_Update);
+		IntervalTimer::SIT_CALLBACK[3]();
+	}
+}
+
+void Wiring_TIM7_Interrupt_Handler_override()
+{
+	if (TIM_GetITStatus(TIM7, TIM_IT_Update) != RESET)
+	{
+		TIM_ClearITPendingBit(TIM7, TIM_IT_Update);
+		IntervalTimer::SIT_CALLBACK[4]();
+	}
+}
+#else
+  #error "*** PARTICLE device not supported by this library. PLATFORM should be Core or Photon ***"
+#endif
 
 // ------------------------------------------------------------
 // this function inits and starts the timer, using the specified
@@ -74,7 +121,7 @@ extern "C" void Wiring_TIM4_Interrupt_Handler_override()
 // and = 1-65535 microsecond (uSec)
 // or 1-65535 0.5ms increments (hmSec)
 // ------------------------------------------------------------
-bool IntervalTimer::beginCycles(void (*isrCallback)(), uint16_t Period, bool scale, TIMid id) {
+bool IntervalTimer::beginCycles(void (*isrCallback)(), intPeriod Period, bool scale, TIMid id) {
 
 	// if this interval timer is already running, stop and deallocate it
 	if (status == TIMER_SIT) {
@@ -84,14 +131,14 @@ bool IntervalTimer::beginCycles(void (*isrCallback)(), uint16_t Period, bool sca
 	// store callback pointer
 	myISRcallback = isrCallback;
 
-	if (id > NUM_SIT) {		// Allocate specified timer (id=0 to 3) or auto-allocate from pool (id=255)
+	if (id > NUM_SIT) {		// Allocate specified timer (id=0 to 2/4) or auto-allocate from pool (id=255)
 		// attempt to allocate this timer
-		if (allocate_SIT(Period, scale, AUTO)) status = TIMER_SIT;		//255 means allocate from pool
+		if (allocate_SIT(Period, scale, id)) status = TIMER_SIT;		//255 means allocate from pool
 		else status = TIMER_OFF;
 	}
 	else {
 		// attempt to allocate this timer
-		if (allocate_SIT(Period, scale, id)) status = TIMER_SIT;		//0-3 so directly allocate
+		if (allocate_SIT(Period, scale, AUTO)) status = TIMER_SIT;		//255 means allocate from pool
 		else status = TIMER_OFF;
 	}
 
@@ -108,11 +155,10 @@ bool IntervalTimer::beginCycles(void (*isrCallback)(), uint16_t Period, bool sca
 // it's initialized and started with the specified value, and
 // the function returns true, otherwise it returns false
 // ------------------------------------------------------------
-bool IntervalTimer::allocate_SIT(uint16_t Period, bool scale, TIMid id) {
+bool IntervalTimer::allocate_SIT(intPeriod Period, bool scale, TIMid id) {
 
-	if (id < NUM_SIT) {		// Allocate specified timer (id=TIMER2/3/4) or auto-allocate from pool (id=AUTO)
+	if (id < NUM_SIT) {		// Allocate specified timer (id=TIMER3/4/5) or auto-allocate from pool (id=AUTO)
 		if (!SIT_used[id]) {
-			SIT_id = id;
 			start_SIT(Period, scale);
 			SIT_used[id] = true;
 			return true;
@@ -140,15 +186,16 @@ bool IntervalTimer::allocate_SIT(uint16_t Period, bool scale, TIMid id) {
 // configuters a SIT's TIMER registers, etc and enables
 // interrupts, effectively starting the timer upon completion
 // ------------------------------------------------------------
-void IntervalTimer::start_SIT(uint16_t Period, bool scale) {
+void IntervalTimer::start_SIT(intPeriod Period, bool scale) {
 
 	TIM_TimeBaseInitTypeDef timerInitStructure;
     NVIC_InitTypeDef nvicStructure;
-	uint16_t prescaler;
+	intPeriod prescaler;
 	TIM_TypeDef* TIMx;
-	
+
 	//use SIT_id to identify TIM#
 	switch (SIT_id) {
+#if defined(STM32F10X_MD) || !defined(PLATFORM_ID)		//Core
 	case 0:		// TIM2
 		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
 		nvicStructure.NVIC_IRQChannel = TIM2_IRQn;
@@ -164,6 +211,33 @@ void IntervalTimer::start_SIT(uint16_t Period, bool scale) {
 		nvicStructure.NVIC_IRQChannel = TIM4_IRQn;
 		TIMx = TIM4;
 		break;
+#elif defined(STM32F2XX) && defined(PLATFORM_ID)	//Photon
+	case 0:		// TIM3
+		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
+		nvicStructure.NVIC_IRQChannel = TIM3_IRQn;
+		TIMx = TIM3;
+		break;
+	case 1:		// TIM4
+		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE);
+		nvicStructure.NVIC_IRQChannel = TIM4_IRQn;
+		TIMx = TIM4;
+		break;
+	case 2:		// TIM5
+		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM5, ENABLE);
+		nvicStructure.NVIC_IRQChannel = TIM5_IRQn;
+		TIMx = TIM5;
+		break;
+	case 3:		// TIM6
+		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM6, ENABLE);
+		nvicStructure.NVIC_IRQChannel = TIM6_DAC_IRQn;
+		TIMx = TIM6;
+		break;
+	case 4:		// TIM7
+		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM7, ENABLE);
+		nvicStructure.NVIC_IRQChannel = TIM7_IRQn;
+		TIMx = TIM7;
+		break;
+#endif
 	}
 	
 	// Initialize Timer
@@ -175,8 +249,8 @@ void IntervalTimer::start_SIT(uint16_t Period, bool scale) {
 			prescaler = SIT_PRESCALERm;	// Set prescaler for 2Hz clock, .5ms period
 			break;
 		default:
-			scale = uSec;				// Default to microseconds
 			prescaler = SIT_PRESCALERu;
+			scale = uSec;				// Default to microseconds
 			break;
 	}
 
@@ -195,7 +269,7 @@ void IntervalTimer::start_SIT(uint16_t Period, bool scale) {
 
 	//Enable Timer Interrupt
     nvicStructure.NVIC_IRQChannelPreemptionPriority = 10;
-    nvicStructure.NVIC_IRQChannelSubPriority = 0;
+    nvicStructure.NVIC_IRQChannelSubPriority = 1;
     nvicStructure.NVIC_IRQChannelCmd = ENABLE;
     NVIC_Init(&nvicStructure);
 }
@@ -223,6 +297,7 @@ void IntervalTimer::stop_SIT() {
 
 	//use SIT_id to identify TIM#
 	switch (SIT_id) {
+#if defined(STM32F10X_MD) || !defined(PLATFORM_ID)		//Core
 	case 0:		// TIM2
 		nvicStructure.NVIC_IRQChannel = TIM2_IRQn;
 		TIMx = TIM2;
@@ -235,7 +310,29 @@ void IntervalTimer::stop_SIT() {
 		nvicStructure.NVIC_IRQChannel = TIM4_IRQn;
 		TIMx = TIM4;
 		break;
-	}
+#elif defined(STM32F2XX) && defined(PLATFORM_ID)	//Photon
+	case 0:		// TIM3
+		nvicStructure.NVIC_IRQChannel = TIM3_IRQn;
+		TIMx = TIM3;
+		break;
+	case 1:		// TIM4
+		nvicStructure.NVIC_IRQChannel = TIM4_IRQn;
+		TIMx = TIM4;
+		break;
+	case 2:		// TIM5
+		nvicStructure.NVIC_IRQChannel = TIM5_IRQn;
+		TIMx = TIM5;
+		break;
+	case 3:		// TIM6
+		nvicStructure.NVIC_IRQChannel = TIM6_DAC_IRQn;
+		TIMx = TIM6;
+		break;
+	case 4:		// TIM7
+		nvicStructure.NVIC_IRQChannel = TIM7_IRQn;
+		TIMx = TIM7;
+		break;
+#endif
+		}
 	// disable counter
 	TIM_Cmd(TIMx, DISABLE);
 	
@@ -262,6 +359,7 @@ void IntervalTimer::interrupt_SIT(action ACT)
 
 	//use SIT_id to identify TIM#
 	switch (SIT_id) {
+#if defined(STM32F10X_MD) || !defined(PLATFORM_ID)		//Core
 	case 0:		// TIM2
 		nvicStructure.NVIC_IRQChannel = TIM2_IRQn;
 		TIMx = TIM2;
@@ -274,13 +372,35 @@ void IntervalTimer::interrupt_SIT(action ACT)
 		nvicStructure.NVIC_IRQChannel = TIM4_IRQn;
 		TIMx = TIM4;
 		break;
+#elif defined(STM32F2XX) && defined(PLATFORM_ID)	//Photon
+	case 0:		// TIM3
+		nvicStructure.NVIC_IRQChannel = TIM3_IRQn;
+		TIMx = TIM3;
+		break;
+	case 1:		// TIM4
+		nvicStructure.NVIC_IRQChannel = TIM4_IRQn;
+		TIMx = TIM4;
+		break;
+	case 2:		// TIM5
+		nvicStructure.NVIC_IRQChannel = TIM5_IRQn;
+		TIMx = TIM5;
+		break;
+	case 3:		// TIM6
+		nvicStructure.NVIC_IRQChannel = TIM6_DAC_IRQn;
+		TIMx = TIM6;
+		break;
+	case 4:		// TIM7
+		nvicStructure.NVIC_IRQChannel = TIM7_IRQn;
+		TIMx = TIM7;
+		break;
+#endif
 	}
 
 	switch (ACT) {
 	case INT_ENABLE:
 		//Enable Timer Interrupt
-		nvicStructure.NVIC_IRQChannelPreemptionPriority = 10;
-		nvicStructure.NVIC_IRQChannelSubPriority = 0;
+		nvicStructure.NVIC_IRQChannelPreemptionPriority = 0;
+		nvicStructure.NVIC_IRQChannelSubPriority = 1;
 		nvicStructure.NVIC_IRQChannelCmd = ENABLE;
 		NVIC_Init(&nvicStructure);
 		break;
@@ -300,14 +420,15 @@ void IntervalTimer::interrupt_SIT(action ACT)
 // Set new period for the SIT without
 // removing the SIT.
 // ------------------------------------------------------------
-void IntervalTimer::resetPeriod_SIT(uint16_t newPeriod, bool scale)
+void IntervalTimer::resetPeriod_SIT(intPeriod newPeriod, bool scale)
 {
-	TIM_TimeBaseInitTypeDef timerInitStructure;
+	//TIM_TimeBaseInitTypeDef timerInitStructure;
 	TIM_TypeDef* TIMx;
-	uint16_t prescaler;
+	intPeriod prescaler;
 
 	//use SIT_id to identify TIM#
 	switch (SIT_id) {
+#if defined(STM32F10X_MD) || !defined(PLATFORM_ID)		//Core
 	case 0:		// TIM2
 		TIMx = TIM2;
 		break;
@@ -317,6 +438,23 @@ void IntervalTimer::resetPeriod_SIT(uint16_t newPeriod, bool scale)
 	case 2:		// TIM4
 		TIMx = TIM4;
 		break;
+#elif defined(STM32F2XX) && defined(PLATFORM_ID)	//Photon
+	case 0:		// TIM3
+		TIMx = TIM3;
+		break;
+	case 1:		// TIM4
+		TIMx = TIM4;
+		break;
+	case 2:		// TIM5
+		TIMx = TIM5;
+		break;
+	case 3:		// TIM6
+		TIMx = TIM6;
+		break;
+	case 4:		// TIM7
+		TIMx = TIM7;
+		break;
+#endif
 	}
 
 	switch (scale) {
@@ -345,7 +483,7 @@ void IntervalTimer::resetPeriod_SIT(uint16_t newPeriod, bool scale)
 int8_t IntervalTimer::isAllocated_SIT(void)
 {
 	if (status == TIMER_SIT)
-		return SIT_id;
-	else 
 		return -1;
+	else 
+		return SIT_id;
 }
