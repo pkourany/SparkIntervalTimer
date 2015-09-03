@@ -1,4 +1,5 @@
 /* Copyright (c) 2014 Paul Kourany, based on work by Dianel Gilbert
+ UPDATED Sept 3, 2015 - Added support for Particle Photon
 
 Copyright (c) 2013 Daniel Gilbert, loglow@gmail.com
 
@@ -35,14 +36,16 @@ pitfalls of interrupt programming.
 1. Using Hardware Timers 
 ------------------------
 
-Up to 3 IntervalTimer objects may be active simultaneously. The Core 
-hardware timers TMR2, TMR3 and TMR4 will be allocated as required (in that order).
+Up to 5 (3 on the Core) IntervalTimer objects may be active simultaneously. The
+Photon hardware timers TMR3, TMR4, TMR5, TMR6 and TMR7 will allocated while the Core 
+hardware timers TMR2, TMR3 and TMR4 will be allocated as required (in those orders).
 
 Hardware timers are used for providing PWM output via the analogWrite() function.
 Allocating a hardware timer will disable PWM capabilities to certain pins based
 on the timer allocated as follows:
 
 ```
+CORE:
 PIN		TMR2	TMR3	TMR4
 ----------------------------
 D0						 x
@@ -53,8 +56,20 @@ A4				 x
 A5				 x
 A6				 x
 A7 				 x
+
+PHOTON:
+PIN		TMR3	TMR4	TMR5	TMR6	TMR7
+--------------------------------------------
+D0			  	 x
+D1			  	 x
+D2		 x
+D3		 x
+A4		 x
+A5		 x
+WKP					     x
+
 ```
-Note that digital I/O (read/write) will still functions on the affected pins.
+Note that digital I/O (read/write) will still functions on the affected pins.  Also not that on the Photon, TMR6 and TMR7 are not mapped to any I/O pins.
 
 2. IntervalTimer Usage 
 ----------------------
@@ -63,8 +78,9 @@ Note that digital I/O (read/write) will still functions on the affected pins.
 IntervalTimer myTimer;
 ```
 Create an IntervalTimer object. You may create as many IntervalTimers as 
-needed, but only a limited number (3) may be active simultaneously. 
-Normally IntervalTimer objects should be created as global variables. 
+needed, but only a limited number (3 on Core, 5 on Photon) may be active
+simultaneously. Normally IntervalTimer objects should be created as global
+variables. 
 
 
 ```
@@ -84,8 +100,9 @@ quickly as possible, and should avoid calling other functions if possible.
 myTimer.begin(function, time, timebase, id);  //MANUALLY allocate timer
 ```
 Manually allocate a timer from the pool by specifying its id and start it.
-The specified id corresponds to a hardware timer: TIMER2, TIMER3 or TIMER4.
-The remaining parameters are the same as above.
+The specified id corresponds to a hardware timer - Core = TIMER2, TIMER3
+or TIMER4 and Photon = TIMER3, TIMER4, TIMER5, TIMER6, TIMER7.The remaining
+parameters are the same as above.
 
 
 ```
@@ -105,7 +122,8 @@ IntervalTimer's interrupts without deleting the object
 ```
 myTimer.isAllocated_SIT();
 ```
-Returns -1 if timer is not allocated or allocated timer id (TIMER2, TIMER3, TIMER4).
+Returns -1 if timer is not allocated or allocated timer id (Core = TIMER2,
+TIMER3, TIMER4 and Photon = TIMER3, TIMER4, TIMER5, TIMER6, TIMER7).
 
 
 ```
@@ -118,11 +136,12 @@ resource becomes available for use by other IntervalTimer objects.
 3. Example Program 
 ------------------
 
-The included demo program will create three Interval Timers (maximum 
-allowed) to blink three LEDs at different intervals. The first timer 
-will blink the onboard LED while 2 extra LEDs (and small current 
-limiting resistors) must be added by the user on pins D3 and D4.
-After 100 blinks, Timer1 will reset to 1/4 of its interval (250ms) and
+The included demo program will create 3 or 5 Interval Timers (maximum 
+allowed on Core or Photon) to blink three LEDs at different intervals.
+The first timer will blink the onboard LED while 2 (Core) or 4 (Photon)
+extra LEDs (and small current limiting resistors) must be added by the
+user on pins D3 and D4 on Core and D3, D4, D5 and D6 on Photon. After
+100 blinks, Timer1 will reset to 1/4 of its interval (250ms) and
 after 200 more blinks, Timer1 is shut down and will stop blinking.
 
 
