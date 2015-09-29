@@ -118,9 +118,9 @@ class IntervalTimer {
 #elif defined(STM32F10X_MD)							//Core
 	if (!sysIntSetupDone) {
 		sysIntSetupDone = true;
-		if (!attachSystemInterrupt(SysInterrupt_TIM2, Wiring_TIM2_Interrupt_Handler_override)) ;	//error
-		if (!attachSystemInterrupt(SysInterrupt_TIM3, Wiring_TIM3_Interrupt_Handler_override)) ;	//error
-		if (!attachSystemInterrupt(SysInterrupt_TIM4, Wiring_TIM4_Interrupt_Handler_override)) ;	//error
+		if (!attachSystemInterrupt(SysInterrupt_TIM2_Update, Wiring_TIM2_Interrupt_Handler_override)) ;	//error
+		if (!attachSystemInterrupt(SysInterrupt_TIM3_Update, Wiring_TIM3_Interrupt_Handler_override)) ;	//error
+		if (!attachSystemInterrupt(SysInterrupt_TIM4_Update, Wiring_TIM4_Interrupt_Handler_override)) ;	//error
 	}
 #elif defined(STM32F2XX) && defined(PLATFORM_ID)	//Photon
 	if (!sysIntSetupDone) {
