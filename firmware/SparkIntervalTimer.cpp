@@ -131,7 +131,7 @@ bool IntervalTimer::beginCycles(void (*isrCallback)(), intPeriod Period, bool sc
 	// store callback pointer
 	myISRcallback = isrCallback;
 
-	if (id > NUM_SIT) {		// Allocate specified timer (id=0 to 2/4) or auto-allocate from pool (id=255)
+	if (id < NUM_SIT) {		// Allocate specified timer (id=0 to 2/4) or auto-allocate from pool (id=255)
 		// attempt to allocate this timer
 		if (allocate_SIT(Period, scale, id)) status = TIMER_SIT;		//255 means allocate from pool
 		else status = TIMER_OFF;
