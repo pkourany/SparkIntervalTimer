@@ -5,6 +5,7 @@
  BUG FIX Oct 5, 2015 - Fix for manual/auto SIT allocation (thanks @lige!)`
 
 Copyright (c) 2013 Daniel Gilbert, loglow@gmail.com
+Copyright (c) 2014 Paul Kourany, pkourany@gmail.com
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in the
