@@ -159,6 +159,7 @@ bool IntervalTimer::allocate_SIT(intPeriod Period, bool scale, TIMid id) {
 
 	if (id < NUM_SIT) {		// Allocate specified timer (id=TIMER3/4/5) or auto-allocate from pool (id=AUTO)
 		if (!SIT_used[id]) {
+			SIT_id = id;
 			start_SIT(Period, scale);
 			SIT_used[id] = true;
 			return true;
