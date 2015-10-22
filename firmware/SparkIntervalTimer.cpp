@@ -255,6 +255,16 @@ void IntervalTimer::start_SIT(intPeriod Period, bool scale) {
 			break;
 	}
 
+	// point to the correct SIT ISR
+	SIT_CALLBACK[SIT_id] = myISRcallback;
+
+	// Enable Timer Interrupt
+    	nvicStructure.NVIC_IRQChannelPreemptionPriority = 10;
+    	nvicStructure.NVIC_IRQChannelSubPriority = 1;
+    	nvicStructure.NVIC_IRQChannelCmd = ENABLE;
+    	NVIC_Init(&nvicStructure);
+	
+	// Timebase configuration
 	timerInitStructure.TIM_Prescaler = prescaler;
 	timerInitStructure.TIM_CounterMode = TIM_CounterMode_Up;
 	timerInitStructure.TIM_Period = Period;
@@ -262,17 +272,8 @@ void IntervalTimer::start_SIT(intPeriod Period, bool scale) {
 	timerInitStructure.TIM_RepetitionCounter = 0;
 
 	TIM_TimeBaseInit(TIMx, &timerInitStructure);
-	TIM_Cmd(TIMx, ENABLE);
 	TIM_ITConfig(TIMx, TIM_IT_Update, ENABLE);
-
-	// point to the correct SIT ISR
-	SIT_CALLBACK[SIT_id] = myISRcallback;
-
-	//Enable Timer Interrupt
-    nvicStructure.NVIC_IRQChannelPreemptionPriority = 10;
-    nvicStructure.NVIC_IRQChannelSubPriority = 1;
-    nvicStructure.NVIC_IRQChannelCmd = ENABLE;
-    NVIC_Init(&nvicStructure);
+	TIM_Cmd(TIMx, ENABLE);
 }
 
 
