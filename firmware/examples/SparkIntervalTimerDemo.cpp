@@ -1,5 +1,8 @@
 // Spark Interval Timer demo
 //
+// Please refer to the github README file for more details:
+// https://github.com/pkourany/SparkIntervalTimer/blob/master/README.md
+//
 // This demo will create several Interval Timers (3 on Core, 5 on Photon) to blink 
 // LEDs at different intervals.  The first timer will blink the onboard LED
 // while extra LEDs (and small current limiting resistors) must be added
@@ -12,7 +15,7 @@
 
 SYSTEM_MODE(MANUAL);		//For this demo, WiFi and Cloud connections are disabled
 
-// Creat IntervalTimer objects
+// Create IntervalTimer objects
 IntervalTimer myTimer;		// 3 for the Core
 IntervalTimer myTimer2;
 IntervalTimer myTimer3;
@@ -21,7 +24,7 @@ IntervalTimer myTimer4;
 IntervalTimer myTimer5;
 #endif
 
-// Pre-define ISR callback functions
+// Pre-declare ISR callback functions
 void blinkLED(void);
 void blinkLED2(void);
 void blinkLED3(void);
@@ -39,7 +42,7 @@ const uint8_t ledPin5 = D6;
 #endif
 
 void setup(void) {
-  pinMode(ledPin, OUTPUT);
+  pinMode(ledPin, OUTPUT);		// Configure LED pins as OUTPUTs
   pinMode(ledPin2, OUTPUT);
   pinMode(ledPin3, OUTPUT);
  #if (PLATFORM_ID == 6)			//Extras for Photon
@@ -47,29 +50,35 @@ void setup(void) {
   pinMode(ledPin5, OUTPUT);
 #endif
   
-  // AUTO allocate blinkLED to run every 500ms (1000 * .5ms period)
+  // AUTO allocate blinkLED to run every 500ms using hmSec timescale (1000 * 0.5ms period)
+  // On Core the first allocated timer is TIMER2.  On Photon, it is TIMER3.
   myTimer.begin(blinkLED, 1000, hmSec);
 
-  // Manually allocate blinkLED2 to hardware timer TIM4 to run every 250ms (500 * .5ms period)  
-  myTimer2.begin(blinkLED2, 500, hmSec);
+  // Manually allocate blinkLED2 to hardware timer TIMER4 to run every 250ms using hmSec timescale (500 * 0.5ms period)
+  // TIMER4 is common to both Core and Photon.
+  myTimer2.begin(blinkLED2, 500, hmSec, TIMER4);
   
-  // Manually allocate blinkLED3 to hardware timer TIM3 blinkLED to run every 1000ms (2000 * .5ms period)
+  // Auto allocate blinkLED3 to run every 1000ms using hmSec timescale (2000 * 0.5ms period)
+  // On Core allocated timer will be first free = TIMER3.  On Photon, it will be TIMER5.
   myTimer3.begin(blinkLED3, 2000, hmSec);
   
 #if (PLATFORM_ID == 6)
-  // Manually allocate blinkLED4 to hardware timer TIM6 to run every 250ms (500 * .5ms period)  
-  myTimer4.begin(blinkLED4, 300, hmSec);
+  // Auto allocate blinkLED4 to run every 65ms using uSec timescale (65000 * 1us period)
+  // On Photon (only) allocated timer will be next free = TIMER6.
+  myTimer4.begin(blinkLED4, 65000, uSec);
   
-  // Manually allocate blinkLED5 to hardware timer TIM7 blinkLED to run every 1000ms (2000 * .5ms period)
-  myTimer5.begin(blinkLED5, 3000, hmSec);
+  // Manually allocate blinkLED5 to hardware timer TIMER7 blinkLED to run every 5000ms (10000 * .5ms period)
+  myTimer5.begin(blinkLED5, 10000, hmSec, TIMER7);
 #endif
 }
 
-// The first TIMER interrupt will blink the LED, and keep
-// track of how many times it has blinked.  The other 
-// timers only blink their LEDs
+// The first TIMER (myTimer) interrupt will blink the LED, and keep
+// track of how many times it has blinked.  After 200 on/off cycles
+// the timer interval will be changed to 125ms (250 * 0.5ms).
+// After a further 200 pulses, the timer will be shut down.
+// All other timers only blink their associated LEDs
 
-volatile unsigned long blinkCount = 0; // use volatile for shared variables
+volatile unsigned long blinkCount = 0; // use volatile for variables shared with ISR
 
 // functions called by IntervalTimer should be short, run as quickly as
 // possible, and should avoid calling other functions if possible.
@@ -77,7 +86,7 @@ volatile unsigned long blinkCount = 0; // use volatile for shared variables
 // Callback for Timer 1
 void blinkLED(void) {
 	digitalWrite(ledPin,!digitalRead(ledPin));
-    blinkCount++;		// increase when LED turns on
+    blinkCount++;		// increase when LED turns changes
 }
 
 // Callback for Timer 2
@@ -105,12 +114,13 @@ void blinkLED5(void) {
 
 void loop(void) {
 
-  if (blinkCount == 200)	{			// After 100 blinks, shut down timer 1
-    blinkCount++;						// increment count so IF does not keep passing
+  if (blinkCount == 200)	{			// After 200 on/off cycles, change first timer interval
+  							// to 125ms (250 * 0.5ms) for next 200 cycles.
+    blinkCount++;					// increment count so IF does not trigger again
 	myTimer.resetPeriod_SIT(250, hmSec);
 	}
-  else if (blinkCount >= 400) {			// After 100 blinks, shut down timer 1
-	blinkCount = 0;						// reset count so IF does not keep passing
-	myTimer.end();
+  else if (blinkCount >= 400) {				// After 200 more on/off cycles, shut down first timer
+  	blinkCount = 0;					// reset count so IF does not keep passing
+	myTimer.end();					// Disable the first timer
 	}
 }
