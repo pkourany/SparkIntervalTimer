@@ -1,5 +1,7 @@
 /* Copyright (c) 2014 Paul Kourany, based on work by Dianel Gilbert
 
+ UPDATED Jan 5, 2016 - Udpated/fixed example
+
  UPDATED Sept 3, 2015 - Added support for Particle Photon
  
  BUG FIX Oct 5, 2015 - Fix for manual/auto SIT allocation (thanks @lige!)`
