@@ -1,10 +1,9 @@
 /* Copyright (c) 2014 Paul Kourany, based on work by Dianel Gilbert
 
- UPDATED Jan 5, 2016 - Udpated/fixed example
-
- UPDATED Sept 3, 2015 - Added support for Particle Photon
- 
- BUG FIX Oct 5, 2015 - Fix for manual/auto SIT allocation (thanks @lige!)`
+ - UPDATED Jan 29, 2016 - update to Libraries 2.0
+ - UPDATED Jan 5, 2016 - Udpated/fixed example
+ - UPDATED Sept 3, 2015 - Added support for Particle Photon
+ - BUG FIX Oct 5, 2015 - Fix for manual/auto SIT allocation (thanks @lige!)`
 
 Copyright (c) 2013 Daniel Gilbert, loglow@gmail.com
 Copyright (c) 2014 Paul Kourany, pkourany@gmail.com

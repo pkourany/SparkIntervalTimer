@@ -1,7 +1,0 @@
-{
-	"name": "SparkIntervalTimer",
-	"author": "Paul Kourany",
-	"version": "1.3.6",
-	"license": "Unknown",
-	"description": "Particle Interval Timer using hardware timers for Core and Photon"
-}
